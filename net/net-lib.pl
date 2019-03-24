@@ -25,6 +25,11 @@ elsif ($gconfig{'os_type'} eq 'debian-linux' && -d "/etc/netplan") {
 	# Special case for newer Ubuntu versions
 	do "netplan-lib.pl";
 	}
+elsif ($gconfig{'real_os_type'} eq 'Raspbian Linux' && 
+       $gconfig{'real_os_version'} >= 9) {
+	# Special case for Raspian. Uses dhcpcd for interfaces configuration
+	do "raspbian-linux-9-ALL-lib.pl";
+	}
 else {
 	do "$gconfig{'os_type'}-lib.pl";
 	}

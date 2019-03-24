@@ -733,46 +733,50 @@ sub get_dns_config
 local $dns = { };
 local $rc;
 local $dnsfile;
-if ($use_suse_dns && ($rc = &parse_rc_config()) && $rc->{'NAMESERVER'}) {
-	# Special case - get DNS settings from SuSE config
-	local @ns = split(/\s+/, $rc->{'NAMESERVER'}->{'value'});
-	$dns->{'nameserver'} = [ grep { $_ ne "YAST_ASK" } @ns ];
-	local $src = $rc->{'SEARCHLIST'};
-	$dns->{'domain'} = [ split(/\s+/, $src->{'value'}) ] if ($src);
-	$dnsfile = $rc_config;
-	}
-elsif ($gconfig{'os_type'} eq 'debian-linux' && -l "/etc/resolv.conf" &&
-       $netplan_dir) {
-	# On Ubuntu 18+, /etc/resolv.conf is auto-generated from netplan config
-	my @boot = &boot_interfaces();
-	foreach my $b (@boot) {
-		if ($b->{'nameserver'}) {
-			$dns->{'nameserver'} = $b->{'nameserver'};
-			$dns->{'domain'} = $b->{'search'};
-			$dnsfile = $b->{'file'};
-			last;
-			}
+if(defined(&os_get_dns_config)) {
+	$dnsfile = &os_get_dns_config($dns);
+} else {
+	if ($use_suse_dns && ($rc = &parse_rc_config()) && $rc->{'NAMESERVER'}) {
+		# Special case - get DNS settings from SuSE config
+		local @ns = split(/\s+/, $rc->{'NAMESERVER'}->{'value'});
+		$dns->{'nameserver'} = [ grep { $_ ne "YAST_ASK" } @ns ];
+		local $src = $rc->{'SEARCHLIST'};
+		$dns->{'domain'} = [ split(/\s+/, $src->{'value'}) ] if ($src);
+		$dnsfile = $rc_config;
 		}
-	}
-elsif ($gconfig{'os_type'} eq 'debian-linux' && -l "/etc/resolv.conf") {
-	# On Ubuntu 12+, /etc/resolv.conf is auto-generated from network
-	# interface config
-	my @ifaces = &get_interface_defs();
-	foreach my $i (@ifaces) {
-		local ($ns) = grep { $_->[0] eq 'dns-nameservers' } @{$i->[3]};
-		local @dom = grep { $_->[0] eq 'dns-domain' ||
-				    $_->[0] eq 'dns-search' } @{$i->[3]};
-		if ($ns) {
-			$dns->{'nameserver'} = [ split(/\s+/, $ns->[1]) ];
-			if (@dom) {
-				$dns->{'domain'} =
-					[ map { split(/\s+/, $_->[1]) } @dom ];
+	elsif ($gconfig{'os_type'} eq 'debian-linux' && -l "/etc/resolv.conf" &&
+	       $netplan_dir) {
+		# On Ubuntu 18+, /etc/resolv.conf is auto-generated from netplan config
+		my @boot = &boot_interfaces();
+		foreach my $b (@boot) {
+			if ($b->{'nameserver'}) {
+				$dns->{'nameserver'} = $b->{'nameserver'};
+				$dns->{'domain'} = $b->{'search'};
+				$dnsfile = $b->{'file'};
+				last;
 				}
-			$dnsfile = "/etc/network/interfaces";
-			last;
 			}
 		}
-	}
+	elsif ($gconfig{'os_type'} eq 'debian-linux' && -l "/etc/resolv.conf") {
+		# On Ubuntu 12+, /etc/resolv.conf is auto-generated from network
+		# interface config
+		my @ifaces = &get_interface_defs();
+		foreach my $i (@ifaces) {
+			local ($ns) = grep { $_->[0] eq 'dns-nameservers' } @{$i->[3]};
+			local @dom = grep { $_->[0] eq 'dns-domain' ||
+					    $_->[0] eq 'dns-search' } @{$i->[3]};
+			if ($ns) {
+				$dns->{'nameserver'} = [ split(/\s+/, $ns->[1]) ];
+				if (@dom) {
+					$dns->{'domain'} =
+						[ map { split(/\s+/, $_->[1]) } @dom ];
+					}
+				$dnsfile = "/etc/network/interfaces";
+				last;
+				}
+			}
+		}
+}
 if (!$dnsfile) {
 	# Just read resolv.conf
 	&open_readfile(RESOLV, "/etc/resolv.conf");
