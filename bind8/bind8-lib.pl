@@ -2991,13 +2991,14 @@ if (&has_ndc() == 2) {
 		" ".$rndc_args." 2>&1 </dev/null");
 	$ex = $?;
 	}
-if (&has_ndc() != 2 || $out =~ /connect\s+failed/i) {
+if (&has_ndc() != 2 || $out && $out =~ /connect\s+failed/i) {
 	if (&has_ndc(2)) {
 		# Try with ndc if rndc is not install or failed
 		$out = &backquote_logged("$config{'ndc_cmd'} $args 2>&1 </dev/null");
 		$ex = $?;
 		}
 	}
+sleep(1);
 return wantarray ? ($out, !$ex) : $out;
 }
 
@@ -4207,8 +4208,8 @@ foreach my $z (&list_zone_names()) {
 			next if ($r->{'values'}->[4] !~ /^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)/);
 			eval {
 				$e = timegm($6, $5, $4, $3, $2-1, $1-1900);
-				last;
-				}
+				};
+			last if ($e);
 			}
 		$cache{$z->{'name'}} = "$st[9] $e";
 		}

@@ -806,7 +806,7 @@ while(1) {
 		foreach $s (keys %sessiondb) {
 			local ($user, $ltime, $lip) =
 				split(/\s+/, $sessiondb{$s});
-			if ($time_now - $ltime > 7*24*60*60) {
+			if ($ltime && $time_now - $ltime > 7*24*60*60) {
 				&run_logout_script($s, $user, undef, undef);
 				&write_logout_utmp($user, $lip);
 				if ($user =~ /^\!/ || $sessiondb{$s} eq '') {
@@ -988,7 +988,6 @@ while(1) {
 			# this sub-process is asking about a password
 			local $infd = $passin[$i];
 			local $outfd = $passout[$i];
-			#local $inline = <$infd>;
 			local $inline = &sysread_line($infd);
 			if ($inline) {
 				print DEBUG "main: inline $inline";
@@ -2662,7 +2661,7 @@ else {
 		$rv = &write_keep_alive();
 		&write_data("\r\n");
 		&reset_byte_count();
-		my $bufsize = $config{'bufsize'} || 1024;
+		my $bufsize = $config{'bufsize'} || 32768;
 		while(read(FILE, $buf, $bufsize) > 0) {
 			&write_data($buf);
 			}
@@ -3038,7 +3037,7 @@ while(($idx = index($main::read_buffer, "\n")) < 0) {
 		$more = Net::SSLeay::read($ssl_con);
 		}
 	else {
-		my $bufsize = $config{'bufsize'} || 1024;
+		my $bufsize = $config{'bufsize'} || 32768;
                 local $ok = sysread(SOCK, $more, $bufsize);
 		$more = undef if ($ok <= 0);
 		}
@@ -3084,22 +3083,6 @@ else {
 	sysread(SOCK, $buf, $_[0]) || return undef;
 	return $buf;
 	}
-}
-
-# sysread_line(fh)
-# Read a line from a file handle, using sysread to get a byte at a time
-sub sysread_line
-{
-local ($fh) = @_;
-local $line;
-while(1) {
-	local ($buf, $got);
-	$got = sysread($fh, $buf, 1);
-	last if ($got <= 0);
-	$line .= $buf;
-	last if ($buf eq "\n");
-	}
-return $line;
 }
 
 # wait_for_data(secs)
@@ -5965,7 +5948,7 @@ foreach my $f (readdir(CRONS)) {
 				}
 			}
 		if (!$cron{'interval'} && $cron{'mins'} eq '' &&
-		    $cron{'special'} eq '' && !$cron->{'boot'}) {
+		    $cron{'special'} eq '' && !$cron{'boot'}) {
 			print STDERR "Cron $1 missing any time spec\n";
 			$broken = 1;
 			}
@@ -6309,4 +6292,20 @@ sub is_bad_header
 {
 my ($value, $name) = @_;
 return $value =~ /^\s*\(\s*\)\s*\{/ ? 1 : 0;
+}
+
+# sysread_line(fh)
+# Read a line from a file handle, using sysread to get a byte at a time
+sub sysread_line
+{
+local ($fh) = @_;
+local $line;
+while(1) {
+	local ($buf, $got);
+	$got = sysread($fh, $buf, 1);
+	last if ($got <= 0);
+	$line .= $buf;
+	last if ($buf eq "\n");
+	}
+return $line;
 }

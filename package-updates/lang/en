@@ -45,6 +45,17 @@ index_manynew=There are $1 packages available for installation. Use the search b
 index_search=Find packages matching:
 index_searchok=Search
 index_clear=Show All
+index_tabpkgs=Package Updates
+index_tabscheds=Scheduled Upgrades
+index_tabsrepos=Package Repositories
+index_scheddesc=This form can be used to automatically install package updates on a regular schedule.
+index_reposdesc=This page allows you to configure which respositories will be used for new or updated packages.
+index_reposname=Repository name
+index_reposenabled=Enabled?
+index_reposurl=Package URL
+index_reposdisable=Disable Repositories
+index_reposenable=Enable Repositories
+index_reposdelete=Delete Repositories
 
 update_title=Update Packages
 update_title2=Install Packages
@@ -91,6 +102,9 @@ log_update=Installed $1 updated packages
 log_sched=Enabled scheduled updates
 log_unsched=Disabled scheduled updates
 log_refresh=Refreshed available packages
+log_enable_repos=Enabled $1 package repositories
+log_disable_repos=Disabled $1 package repositories
+log_delete_repos=Deleted $1 package repositories
 
 refresh_title=Refreshing Packages
 refresh_clearing=Clearing package caches ..
@@ -118,4 +132,14 @@ system_csw=CSW (Blastwave)
 system_webmin=Webmin module
 system_usermin=Usermin module
 system_tgz=Webmin or Usermin tar.gz
+
+repos_err_disable=Failed to disable repositories
+repos_err_enable=Failed to enable repositories
+repos_err_delete=Failed to delete repositories
+repos_ebutton=No button clicked!
+repos_enone=None selected
+repos_title=Delete Repositories
+repos_rusure=Are you sure you want to delete the $1 selected package repositories? Packages installed from them will still be available, but may not be updatable. 
+repos_ok=Delete Now
+
 __norefs=1

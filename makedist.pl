@@ -53,7 +53,7 @@ else {
 	  ("cron", "dfsadmin", "exports", "inetd", "init",
 	  "mount", "samba", "useradmin", "fdisk", "format", "proc", "webmin",
 	  "quota", "software", "pap", "acl", "apache", "lpadmin", "bind8",
-	  "sendmail", "squid", "bsdexports", "hpuxexports", "file",
+	  "sendmail", "squid", "bsdexports", "hpuxexports",
 	  "net", "dhcpd", "custom", "telnet", "servers",
 	  "time", "wuftpd", "syslog", "mysql", "man",
 	  "inittab", "raid", "postfix", "webminlog", "postgresql", "xinetd",
@@ -83,7 +83,6 @@ else {
 if (-d "/usr/local/webadmin") {
 	chdir("/usr/local/webadmin");
 	system("./koi8-to-cp1251.pl");
-	system("./make-small-icons.pl /usr/local/webadmin");
 	}
 $dir = "webmin-$vers";
 system("rm -rf $tardir/$dir");

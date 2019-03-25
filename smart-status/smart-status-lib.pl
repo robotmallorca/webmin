@@ -279,6 +279,12 @@ Returns a hash reference containing the status of some drive
 sub get_drive_status
 {
 local ($device, $drive) = @_;
+if ($device =~ /^(\/dev\/nvme\d+)n\d+$/) {
+	# For NVME drives, try the underlying device first
+	local $nd = $1;
+	local $st = &get_drive_status($nd, $drive);
+	return $st if ($st->{'support'} && $st->{'enabled'});
+	}
 local %rv;
 local $qd = quotemeta($device);
 local $extra_args = &get_extra_args($device, $drive);
@@ -310,6 +316,13 @@ if (&get_smart_version() > 5.0) {
 	else {
 		# Not enabled!
 		$rv{'enabled'} = 0;
+		}
+	if ($device =~ /^\/dev\/nvme/ &&
+	    $out =~ /(Model\s+Number|Device\s+Model):/i) {
+		# For NVME devices, surprisingly smart support/enabled info is
+		# not shown. So assume they work
+		$rv{'support'} = 1;
+		$rv{'enabled'} = 1;
 		}
 	if (!$rv{'support'} || !$rv{'enabled'}) {
 		# No point checking further!
