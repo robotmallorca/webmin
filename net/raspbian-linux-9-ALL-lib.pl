@@ -7,9 +7,6 @@
 
 use File::Copy;
 
-# TODO Falla la lectura de la configuració activa quan hi ha definida
-#      una interfície virtual eth0:1
-
 $network_interfaces_config = '/etc/network/interfaces.d/webmin-vip';
 $dhcpcd_config = '/etc/dhcpcd.conf';
 $network_interfaces = '/proc/net/dev';
@@ -195,11 +192,6 @@ my @options;
 my $method;
 my @modules_var;
 
-webmin_debug_log("DEBUG", "In save_interface: name=$name, file_type=$file_type");
-foreach $option (keys(%$cfg)) {
-	webmin_debug_log("DEBUG", "\t$option -> $cfg->{$option}");
-}
-
 # Find the existing interface section
 my @ifaces = get_interface_defs();
 my $found = 0;
@@ -249,7 +241,6 @@ if ($file_type eq "unknow") {
 	}
 }
 
-webmin_debug_log("DEBUG", "Final file_type=$file_type");
 my $amode;
 my @autos;
 if($file_type eq 'interfaces') {
@@ -845,7 +836,7 @@ $sysctl{'net.ipv4.ip_forward'} = $in{'forward'};
 # gets a list of interface definitions (including their options) from the
 # central config file
 # the returned list is an array whose contents are tupels of
-# (name, addrfam, method, options) with
+# (name, addrfam, method, file_type, options) with
 #    name          the interface name (e.g. eth0)
 #    addrfam       the address family (e.g. inet, inet6)
 #    method        the address activation method (e.g. static, dhcp, loopback)
@@ -1023,26 +1014,18 @@ local $i;
 local $found;
 local @ifaces = sort { length($a) <=> length($b) } @_;
 
-webmin_debug_log("DEBUG", "In modify_auto_defs: ");
-foreach my $iface (@ifaces) {
-	webmin_debug_log("DEBUG", "\t$iface$/");
-}
-
 for($i=0; $i<@$lref; $i++) {
 	local $l = $lref->[$i];
-	webmin_debug_log("DEBUG", "\t\t$l");
 	$l =~ s/\r|\n//g;
 	$l =~ s/^\s*#.*$//g;
 	if ($l =~ /^\s*auto\s*(.*)/) {
 		if (!$found++) {
 			# Replace the auto line
 			$lref->[$i] = "auto ".join(" ", @ifaces);
-			webmin_debug_log("DEBUG", "\tReplaced with: $lref->[$i]$/");
 			}
 		else {
 			# Remove another auto line
 			splice(@$lref, $i--, 1);
-			webmin_debug_log("DEBUG", "\tRemoved$/");
 			}
 		}
 	}
@@ -1060,11 +1043,6 @@ sub modify_interface_def
 {
 my ($name, $addrfam, $method, $file_type, $options, $mode) = @_;
 
-	webmin_debug_log("DEBUG", "In modify_interface_def. name=$name, addrfam=$addrfam, method=$method, file_type=$file_type");
-	foreach $option (@$options) {
-		webmin_debug_log("DEBUG", "\t$option->[0]:$option->[1]");
-	}
-	
 if($file_type eq 'interfaces') {
 	# make a backup copy
 	copy("$network_interfaces_config", "$network_interfaces_config~");
@@ -1126,7 +1104,6 @@ if($file_type eq 'interfaces') {
 	&close_tempfile(NEWCFGFILE);
 	&unlock_file($network_interfaces_config);
 } elsif ($file_type eq 'dhcpcd') {
-	webmin_debug_log("DEBUG", "Editing into $dhcpcd_config");	
 	# make a backup copy
 	copy("$dhcpcd_config", "$dhcpcd_config~");
 	local (*OLDCFGFILE, *NEWCFGFILE);
@@ -1195,13 +1172,7 @@ sub new_interface_def
 {
 	local ($name, $addrfam, $method, $file_type, $options) = @_;
 
-	webmin_debug_log("DEBUG", "In new_interface_def. name=$name, addrfam=$addrfam, method=$method, file_type=$file_type");
-	foreach my $option (@$options) {
-		webmin_debug_log("DEBUG", "\t$option->[0]:$option->[1]");
-	}
-
 	if($file_type eq 'dhcpcd') {
-		webmin_debug_log("DEBUG", "Adding to $dhcpcd_config");
 		# make a backup copy
 		copy("$dhcpcd_config", "$dhcpcd_config~");
 		local *CFGFILE;
@@ -1216,7 +1187,6 @@ sub new_interface_def
 				} else {
 					&print_tempfile(CFGFILE, "\t$param\n");
 				}
-				webmin_debug_log("DEBUG", "$param = $value");
 			}
 		}
 		&close_tempfile(CFGFILE);
@@ -1407,8 +1377,6 @@ return ($gconfig{'os_version'} >= 7 ? "bond-" : "bond_").$sfx;
 # on exit &dns is a hashtable containing keys nameserver, domain, search & order
 sub os_get_dns_config
 {
-	webmin_debug_log("DEBUG", "|---> In os_get_dns_config");
-
 	local ($dns) = @_;
 	local $dnsfile;
 	my @ifaces = &get_interface_defs();
@@ -1428,10 +1396,6 @@ sub os_get_dns_config
 				last;
 			}
 		} elsif($file_type eq 'dhcpcd') {
-			foreach $option (@{$i->[4]}) {
-				webmin_debug_log("DEBUG", "\t$option->[0]:$option->[1]");
-			}
-
 			local ($ns) = grep { $_->[0] =~ /static\s+domain_name_servers$/ } @{$i->[4]};
 			local @dom = grep { ($_->[0] =~ /static\s+domain_name$/)} @{$i->[4]};
 			if($ns) {
@@ -1460,8 +1424,6 @@ local @dns_domain;
 local @domain_name;
 local $need_apply = 0;
 local $generated_resolv = -l "/etc/resolv.conf" ? 1 : 0;
-
-webmin_debug_log("DEBUG", "|---> In os_save_dns_config. generated_resolv=$generated_resolv");
 
 if (@{$conf->{'domain'}} > 1) {
 	@dns_domain  = ( [ 'dns-domain',  join(" ",  @{$conf->{'domain'}}) ] );
@@ -1531,11 +1493,9 @@ if (!$need_apply && $generated_resolv) {
 			$need_apply = 1;
 			last;
 		} elsif($file_type eq 'dhcpcd') {
-			webmin_debug_log("DEBUG","Testing $i->[0]");
 			local ($a) = grep { $_->[0] =~ /static\s+ip_address/ }
 					@{$i->[4]};
 			next if (!$a);
-			webmin_debug_log("DEBUG", "Writing DNS info into $i->[0]");
 			if(@{$conf->{'nameserver'}}) {
 				push(@{$i->[4]}, [ 'static domain_name_servers',
 						join(' ', @{$conf->{'nameserver'}}) ]);

@@ -26,19 +26,27 @@ if (&has_command("ip")) {
 		$l =~ /^\d+:\s+(\S+):/ || next;
 		$ifc{'name'} = $1;
 		$ifc{'fullname'} = $1;
-		if ($l =~ /\sinet\s+([0-9\.]+)\s+peer\s+([0-9\.]+)\/(\d+)\s+brd\s+([0-9\.]+)\s+scope\s+global\s+(\S+)/ && $5 eq $ifc{'name'}) {
+		if ($l =~ s/\sinet\s+([0-9\.]+)\s+peer\s+([0-9\.]+)\/(\d+)\s+brd\s+([0-9\.]+)\s+scope\s+(\S+)\s+$ifc{'name'}\s/ /) {
 			# Line like :
 			# inet 193.9.101.120 peer 193.9.101.104/32 brd 193.9.101.120 scope global eth0
 			$ifc{'address'} = $1;
 			$ifc{'netmask'} = &prefix_to_mask("$3");
+			$ifc{'broadcast'} = $4;
 			}
-		elsif ($l =~ /\sinet\s+([0-9\.]+)\/(\d+)/ && !$ifc{'address'}) {
+		elsif ($l =~ s/\sinet\s+([0-9\.]+)\/(\d+)\s+brd\s+([0-9\.]+)\s+scope\s+(\S+)\s+$ifc{'name'}\s/ /) { 
 			# Line like :
 			# inet 193.9.101.120/24 brd 193.9.101.255 scope global br0
 			$ifc{'address'} = $1;
 			$ifc{'netmask'} = &prefix_to_mask("$2");
+			$ifc{'broadcast'} = $3;
 			}
-		elsif ($l =~ /\sinet\s+([0-9\.]+)\s+peer\s+([0-9\.]+)\/(\d+)/) {
+		elsif ($l =~ s/\sinet\s+([0-9\.]+)\/(\d+)\s+scope\s+(\S+)\s+$ifc{'name'}\s/ /) { 
+			# Line like :
+			# inet 127.0.0.1/8 scope host lo
+			$ifc{'address'} = $1;
+			$ifc{'netmask'} = &prefix_to_mask("$2");
+			}
+		elsif ($l =~ s/\sinet\s+([0-9\.]+)\s+peer\s+([0-9\.]+)\/(\d+)/ /) {
 			# Line like :
 			# inet 46.4.13.87 peer 46.4.13.65/32
 			$ifc{'address'} = $1;
@@ -72,8 +80,6 @@ if (&has_command("ip")) {
 		push(@rv, \%ifc);
 
 		# Add extra IPs as fake virtual interfaces
-		$l =~ s/\sinet\s+([0-9\.]+)\s+peer// ||
-			$l =~ s/\sinet\s+([0-9\.]+)\/(\d+)//;
 		my $i = 0;
 		my $bn = $ifc{'name'};
 		while($l =~ s/\sinet\s+([0-9\.]+)\/(\d+).*?\Q$bn\E:(\d+)//) {
