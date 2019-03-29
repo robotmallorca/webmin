@@ -6,12 +6,6 @@ require './net-lib.pl';
 &ReadParse();
 @boot = &boot_interfaces();
 
-webmin_debug_log("DEBUG", "In save_bifc.cgi");
-local $input;
-foreach $input (keys(%in)) {
-	webmin_debug_log("DEBUG", "\t$input -> $in{$input}");
-}
-
 if ($in{'delete'} || $in{'unapply'}) {
 	# Delete interface
 	&error_setup($text{'bifc_err1'});
