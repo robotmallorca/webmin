@@ -12,6 +12,7 @@ elsif (&has_command("dnf")) {
 	}
 
 $yum_command = &has_command("dnf") || &has_command("yum") || "yum";
+$yum_repos_dir = "/etc/yum.repos.d";
 
 sub list_update_system_commands
 {
@@ -156,7 +157,7 @@ my $temp = &transname();
 my @rv;
 open(SHELL, "$yum_command shell $temp |");
 while(<SHELL>) {
-	if (/Package\s+(\S+)\s+(\S+)\s+(set|will\s+be\s+updated)/i) {
+	if (/Package\s+(\S+)\s+(\S+)\s+(set|will\s+be\s+an\s+update)/i) {
 		my $pkg = { 'name' => $1,
 			    'version' => $2 };
 		if ($pkg->{'name'} =~ s/\.([^\.]+)$//) {
@@ -348,6 +349,143 @@ while(<CONF>) {
 	}
 close(CONF);
 return \@rv;
+}
+
+# list_package_repos()
+# Returns a list of configured repositories
+sub list_package_repos
+{
+my @rv;
+
+# Parse the raw repo files
+my $repo;
+foreach my $f (glob("$yum_repos_dir/*.repo")) {
+	my $lref = &read_file_lines($f, 1);
+	my $lnum = 0;
+	foreach my $l (@$lref) {
+		$l =~ s/#.*$//;
+		if ($l =~ /^\[(\S+)\]/) {
+			# Start of a new repo
+			$repo = { 'file' => $f,
+				  'line' => $lnum,
+				  'eline' => $lnum,
+				  'id' => $1,
+				};
+			push(@rv, $repo);
+			}
+		elsif ($l =~ /^([^= ]+)=(.*)$/ && $repo) {
+			# Line in a repo
+			$repo->{'raw'}->{$1} = $2;
+			$repo->{'eline'} = $lnum;
+			}
+		$lnum++;
+		}
+	}
+
+# Extract common information
+foreach my $repo (@rv) {
+	my $name = $repo->{'raw'}->{'name'};
+	$name =~ s/\s*-.*//;
+	$name =~ s/\s*\$[a-z0-9]+//gi;
+	$repo->{'name'} = $repo->{'id'}." (".$name.")";
+	$repo->{'url'} = $repo->{'raw'}->{'baseurl'};
+	$repo->{'enabled'} = defined($repo->{'raw'}->{'enabled'}) ?
+				$repo->{'raw'}->{'enabled'} : 1;
+	}
+
+return @rv;
+}
+
+# create_repo_form()
+# Returns HTML for a package repository creation form
+sub create_repo_form
+{
+my $rv;
+$rv .= &ui_table_row($text{'yum_repo_id'},
+		     &ui_textbox("id", undef, 20));
+$rv .= &ui_table_row($text{'yum_repo_name'},
+		     &ui_textbox("name", undef, 60));
+$rv .= &ui_table_row($text{'yum_repo_url'},
+		     &ui_textbox("url", undef, 60));
+$rv .= &ui_table_row($text{'yum_repo_gpg'},
+		     &ui_opt_textbox("gpg", undef, 60, $text{'yum_repo_none'}));
+return $rv;
+}
+
+# create_repo_parse(&in)
+# Parses input from create_repo_form, and returns either a new repo object or
+# an error string
+sub create_repo_parse
+{
+my ($in) = @_;
+my $repo = { 'raw' => { } };
+
+# ID must be valid and unique
+$in->{'id'} =~ /^[a-z0-9\-\_]+$/i || return $text{'yum_repo_eid'};
+my ($clash) = grep { $_->{'id'} eq $in->{'id'} } &list_package_repos();
+$clash && return $text{'yum_repo_eidclash'};
+$repo->{'id'} = $in->{'id'};
+
+# Human-readable repo name
+$in->{'name'} =~ /\S/ || return $text{'yum_repo_ename'};
+$repo->{'raw'}->{'name'} = $in->{'name'};
+
+# Base URL
+$in->{'url'} =~ /^(http|https):/ || return $text{'yum_repo_eurl'};
+$repo->{'raw'}->{'baseurl'} = $in->{'url'};
+
+# GPG key file
+if (!$in->{'gpg_def'}) {
+	-r $in->{'gpg'} || return $text{'yum_repo_egpg'};
+	$repo->{'raw'}->{'gpgcheck'} = 1;
+	$repo->{'raw'}->{'gpgkey'} = 'file://'.$in->{'gpg'};
+	}
+
+return $repo;
+}
+
+# create_package_repo(&repo)
+# Creates a new repository from the given hash (returned by create_repo_parse)
+sub create_package_repo
+{
+}
+
+# delete_package_repo(&repo)
+# Delete a repository from it's config file. Does not delete the file even if
+# empty, to prevent it from being re-created if it came from an RPM package.
+sub delete_package_repo
+{
+my ($repo) = @_;
+&lock_file($repo->{'file'});
+my $lref = &read_file_lines($repo->{'file'});
+splice(@$lref, $repo->{'line'}, $repo->{'eline'}-$repo->{'line'}+1);
+&flush_file_lines($repo->{'file'});
+&unlock_file($repo->{'file'});
+}
+
+# enable_package_repo(&repo, enable?)
+# Enable or disable a repository
+sub enable_package_repo
+{
+my ($repo, $enable) = @_;
+&lock_file($repo->{'file'});
+my $lref = &read_file_lines($repo->{'file'});
+my $e = "enabled=".($enable ? 1 : 0);
+if (defined($repo->{'raw'}->{'enabled'})) {
+	# There's a line to update already
+	for(my $i=$repo->{'line'}; $i<=$repo->{'eline'}; $i++) {
+		if ($lref->[$i] =~ /^enabled=/) {
+			$lref->[$i] = $e;
+			last;
+			}
+		}
+	}
+else {
+	# Need to add a line
+	splice(@$lref, $repo->{'eline'}, 0, $e);
+	}
+&flush_file_lines($repo->{'file'});
+&unlock_file($repo->{'file'});
 }
 
 1;

@@ -290,7 +290,7 @@ else {
 		}
 	if ($tries >= 10) {
 		my @st = lstat($tmp_dir);
-		&error("Failed to create temp directory $tmp_dir : uid=$st[4] mode=$st[2]");
+		&error("Failed to create temp directory $tmp_dir");
 		}
 	# If running as root, check parent dir (usually /tmp) to make sure it's
 	# world-writable and owned by root
@@ -856,6 +856,11 @@ if ($pragma_no_cache || $gconfig{'pragma_no_cache'}) {
 	print "Expires: Thu, 1 Jan 1970 00:00:00 GMT\n";
 	print "Cache-Control: no-store, no-cache, must-revalidate\n";
 	print "Cache-Control: post-check=0, pre-check=0\n";
+	}
+if ($gconfig{'extra_headers'}) {
+	foreach my $l (split(/\t+/, $gconfig{'extra_headers'})) {
+		print $l."\n";
+		}
 	}
 if (!$gconfig{'no_frame_options'}) {
 	print "X-Frame-Options: SAMEORIGIN\n";
@@ -1468,13 +1473,6 @@ if (!$main::error_must_die) {
 	}
 &load_theme_library();
 if ($main::error_must_die) {
-	if ($gconfig{'error_stack'}) {
-		print STDERR "Error: ",$msg,"\n";
-		for(my $i=0; my @stack = caller($i); $i++) {
-			print STDERR "File: $stack[1] Line: $stack[2] ",
-				     "Function: $stack[3]\n";
-			}
-		}
 	die @_;
 	}
 &call_error_handlers();
@@ -4136,6 +4134,7 @@ sub save_module_acl
 {
 my $u = defined($_[1]) ? $_[1] : $base_remote_user;
 my $m = defined($_[2]) ? $_[2] : &get_module_name();
+$u eq "webmin" && &error("Invalid username webmin for ACL");
 if (!$_[3] && &foreign_check("acl")) {
 	# Check if this user is a member of a group, and if he gets the
 	# module from a group. If so, update its ACL as well
@@ -6757,7 +6756,8 @@ my $serv = ref($host) ? $host->{'host'} : $host;
 &open_socket($serv || "localhost", $rv->[1], TWRITE, \$error);
 return &$main::remote_error_handler("Failed to transfer file : $error")
 	if ($error);
-open(FILE, $localfile);
+open(FILE, $localfile) ||
+	return &$main::remote_error_handler("Failed to open $localfile : $!");
 while(read(FILE, $got, 1024) > 0) {
 	print TWRITE $got;
 	}
@@ -6794,7 +6794,8 @@ my $serv = ref($host) ? $host->{'host'} : $host;
 return &$main::remote_error_handler("Failed to transfer file : $error")
 	if ($error);
 my $got;
-open(FILE, ">$localfile");
+open(FILE, ">$localfile") ||
+	return &$main::remote_error_handler("Failed to open $localfile : $!");
 while(read(TREAD, $got, 1024) > 0) {
 	print FILE $got;
 	}
@@ -6915,7 +6916,7 @@ if ($serv->{'fast'} || !$sn) {
 		# read back the response
 		my $line = &read_http_connection($con);
 		$line =~ tr/\r\n//d;
-		if ($line =~ /^HTTP\/1\..\s+401\s+/) {
+		if ($line =~ /^HTTP\/1\..\s+40[13]\s+/) {
 			return &$main::remote_error_handler("Login to RPC server as $user rejected");
 			}
 		$line =~ /^HTTP\/1\..\s+200\s+/ ||

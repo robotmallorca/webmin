@@ -1,4 +1,4 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 # $Id: index.cgi,v 1.6 2005/04/16 14:30:21 jfranken Exp $
 # * List all subnets and shared networks
 #
@@ -270,21 +270,21 @@ if ($show_subnet_delete) {
 if ($show_subnet_shared) {
 	if (@ulinks >= $display_max) {
 		# Could not show all subnets, so show lookup form
-        print &ui_table_start(undef, undef, 2);
         print &ui_form_start("lookup_subnet.cgi", "get");
+        print &ui_table_start(undef, undef, 2);
         print &ui_table_row($text{'index_subtoomany'}, &ui_submit($text{'index_sublook2'}));
         print &ui_table_row($matches, &ui_textbox("subnet", "", 30));
-        print &ui_form_end(undef,undef,1);
 	    print &ui_table_end();
+        print &ui_form_end(undef,undef,1);
 		}
 	if (@slinks >= $display_max) {
 		# Could not show all shared nets, so show lookup form
-        print &ui_table_start(undef, undef, 2);
         print &ui_form_start("lookup_shared.cgi", "get");
+        print &ui_table_start(undef, undef, 2);
         print &ui_table_row($text{'index_shatoomany'}, &ui_submit($text{'index_shalook2'}));
         print &ui_table_row($matches, &ui_textbox("shared", "", 30));
-        print &ui_form_end(undef,undef,1);
 	    print &ui_table_end();
+        print &ui_form_end(undef,undef,1);
 		}
 	}
 
@@ -424,21 +424,21 @@ if ($show_host_delete) {
 if ($show_host_group) {
 	if (@hlinks >= $display_max) {
 		# Could not show all hosts, so show lookup form
-	    print &ui_table_start(undef, undef, 2);
         print &ui_form_start("lookup_host.cgi", "get");
+	    print &ui_table_start(undef, undef, 2);
         print &ui_table_row($text{'index_hsttoomany'}, &ui_submit($text{'index_hstlook2'}));
         print &ui_table_row($matches, &ui_textbox("host", "", 30));
-        print &ui_form_end(undef,undef,1);
 	    print &ui_table_end();
+        print &ui_form_end(undef,undef,1);
 		}
 	if (@glinks >= $display_max) {
 		# Could not show all groups, so show lookup form
-	    print &ui_table_start(undef, undef, 2);
         print &ui_form_start("lookup_group.cgi", "get");
+	    print &ui_table_start(undef, undef, 2);
         print &ui_table_row($text{'index_grptoomany'}, &ui_submit($text{'index_grplook2'}));
         print &ui_table_row($matches, &ui_textbox("group", "", 30));
-        print &ui_form_end(undef,undef,1);
 	    print &ui_table_end();
+        print &ui_form_end(undef,undef,1);
 		}
 	}
 
@@ -595,6 +595,8 @@ print &ui_columns_start([ "", $text{'index_hostgroup'},
 for ($i = $_[1]; $i < $_[2]; $i++) {
 	local @cols;
 	local $firstcol;
+	$parent = "";
+	$par_type = "";
 	$h = $_[0]->[$i];
 	if ($h->{'name'} eq 'host') {
 		$firstcol .= $sp;
@@ -625,7 +627,7 @@ for ($i = $_[1]; $i < $_[2]; $i++) {
 	if ($config{'desc_name'} && $par{$h}->{'comment'}) {
 	    $parent = $par{$h}->{'comment'};
 	}
-	push(@cols, "$par_type:  $parent");
+	push(@cols, "$par_type  $parent");
 	push(@cols, $_[3]->[$i] ? &hardware($h) : "");
 	push(@cols, $_[3]->[$i] ? &fixedaddr($h) : "");
 	print &ui_checked_columns_row(\@cols, \@tds, "d", $_[5]->[$i]);

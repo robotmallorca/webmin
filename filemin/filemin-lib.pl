@@ -73,7 +73,7 @@ sub get_paths {
             $base = '/';
         }
     }
-    @allowed_paths = &unique(@allowed_paths);
+    @allowed_paths = map { &simplify_path($_) } &unique(@allowed_paths);
     $path = $in{'path'} || '';
     $cwd = &simplify_path($base.$path);
 
@@ -295,6 +295,7 @@ sub print_interface {
         $vlink = html_escape($link);
         $vlink = quote_escape($vlink);
         $vlink = decode('UTF-8', $vlink, Encode::FB_DEFAULT);
+	my $hlink = html_escape($vlink);
         $vpath = quote_escape($vpath);
         $vpath = decode('UTF-8', $vpath, Encode::FB_DEFAULT);
 
@@ -362,7 +363,7 @@ sub print_interface {
         }
         @row_data = (
             "<a href='$href'><img src=\"$img\"></a>",
-            "<a href=\"$href\" data-filemin-path=\"$href\">$vlink</a>"
+            "<a href=\"$href\" data-filemin-path=\"$href\" data-filemin-link=\"$hlink\">$vlink</a>"
         );
         push @row_data, $type if($userconfig{'columns'} =~ /type/);
         push @row_data, $actions;

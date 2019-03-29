@@ -1044,7 +1044,8 @@ elsif ($folder->{'type'} == 4) {
 	# Do the search to get back a list of matching numbers
 	local @search;
 	foreach $f (@{$_[0]}) {
-		local $field = $f->[0] eq "date" ? "on" : $f->[0];
+		local $field = $f->[0] eq "date" ? "on" :
+			       $f->[0] eq "all" ? "body" : $f->[0];
 		local $neg = ($field =~ s/^\!//);
 		local $what = $f->[1];
 		if ($field ne "size") {
@@ -3643,6 +3644,7 @@ if (!fork()) {
 close(INr);
 close(OUTw);
 local $indent = "&nbsp;" x 4;
+local $SIG{'PIPE'} = 'IGNORE';
 local @errs;
 foreach $line (split(/\n+/, $plainbody)) {
 	next if ($line !~ /\S/);
