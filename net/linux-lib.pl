@@ -33,11 +33,7 @@ if (&has_command("ip")) {
 			$ifc{'netmask'} = &prefix_to_mask("$3");
 			$ifc{'broadcast'} = $4;
 			}
-<<<<<<< HEAD
 		elsif ($l =~ s/\sinet\s+([0-9\.]+)\/(\d+)\s+brd\s+([0-9\.]+)\s+scope\s+(\S+)\s+$ifc{'name'}\s/ /) { 
-=======
-		elsif ($l =~ /\sinet\s+([0-9\.]+)\/(\d+)\s+brd\s+(\S+)\s+scope\s+global\s+(\S+)/ && $4 eq $ifc{'name'}) {
->>>>>>> refs/remotes/origin/master
 			# Line like :
 			# inet 193.9.101.120/24 brd 193.9.101.255 scope global br0
 			$ifc{'address'} = $1;
